@@ -1,8 +1,6 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
-import { PlayCircle, Pencil, Monitor, Code2, Users, Sparkles, Check } from "lucide-react";
+import Image from "next/image";
+import { PlayCircle, Pencil, Monitor, Code2, Users, Sparkles, Heart } from "lucide-react";
 
 const FEATURES = [
   {
@@ -53,157 +51,6 @@ const MYSTERY_FEATURE = {
   teaser: "Your style. Your audience. An intelligence built around you.",
 };
 
-const WALLETS = [
-  {
-    symbol: "BTC",
-    name: "Bitcoin",
-    address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-    icon: "₿",
-    color: "#F7931A",
-    bg: "#FFF7ED",
-  },
-  {
-    symbol: "ETH",
-    name: "Ethereum",
-    address: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-    icon: "Ξ",
-    color: "#627EEA",
-    bg: "#EEF2FF",
-  },
-  {
-    symbol: "SOL",
-    name: "Solana",
-    address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-    icon: "◎",
-    color: "#9945FF",
-    bg: "#F5F3FF",
-  },
-];
-
-type FeedbackType = "bug" | "feature" | "general";
-type FbStatus = "idle" | "sending" | "sent" | "error";
-
-function FeedbackForm() {
-  const [type, setType] = useState<FeedbackType>("general");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<FbStatus>("idle");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!message.trim()) return;
-    setStatus("sending");
-    const res = await fetch("/api/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, email: email || undefined, message }),
-    });
-    setStatus(res.ok ? "sent" : "error");
-  }
-
-  if (status === "sent") {
-    return (
-      <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#D1FAE5" }}>
-          <Check size={22} color="#10B981" strokeWidth={2.5} />
-        </div>
-        <p className="font-semibold" style={{ color: "var(--color-accent)" }}>Thanks for the feedback!</p>
-        <p className="text-sm" style={{ color: "var(--color-muted)" }}>It helps a lot. Really.</p>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      {/* Type selector */}
-      <div className="flex gap-2">
-        {(["bug", "feature", "general"] as FeedbackType[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setType(t)}
-            className="flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all"
-            style={{
-              background: type === t ? "var(--color-primary)" : "var(--color-bg)",
-              color: type === t ? "white" : "var(--color-muted)",
-              border: `1px solid ${type === t ? "var(--color-primary)" : "var(--color-border)"}`,
-            }}
-          >
-            {t === "bug" ? "Bug" : t === "feature" ? "Feature idea" : "General"}
-          </button>
-        ))}
-      </div>
-
-      <div>
-        <label className="text-xs font-semibold block mb-1.5" style={{ color: "var(--color-accent)" }}>
-          Message <span style={{ color: "var(--color-error)" }}>*</span>
-        </label>
-        <textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          required
-          rows={4}
-          placeholder={
-            type === "bug" ? "Describe the bug — what happened, what you expected…"
-            : type === "feature" ? "What feature would help you most?"
-            : "What's on your mind?"
-          }
-          className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none"
-          style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)" }}
-        />
-      </div>
-
-      <div>
-        <label className="text-xs font-semibold block mb-1.5" style={{ color: "var(--color-accent)" }}>
-          Email <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>(optional — so we can reply)</span>
-        </label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none"
-          style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)" }}
-        />
-      </div>
-
-      {status === "error" && (
-        <p className="text-xs" style={{ color: "var(--color-error)" }}>Something went wrong. Try again.</p>
-      )}
-
-      <button
-        type="submit"
-        disabled={status === "sending" || !message.trim()}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-        style={{ background: "var(--color-primary)" }}
-      >
-        {status === "sending" ? "Sending…" : "Send feedback"}
-      </button>
-    </form>
-  );
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
-      className="text-[10px] font-medium px-2 py-0.5 rounded"
-      style={{
-        background: copied ? "#D1FAE5" : "rgba(0,0,0,0.06)",
-        color: copied ? "#065F46" : "var(--color-muted)",
-        transition: "all 0.2s",
-      }}
-    >
-      {copied ? "Copied!" : "Copy"}
-    </button>
-  );
-}
-
 export default function UpcomingPage() {
   return (
     <main style={{ background: "var(--color-bg)", minHeight: "100vh" }}>
@@ -212,12 +59,16 @@ export default function UpcomingPage() {
         className="flex items-center justify-between px-8 py-5 border-b"
         style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
       >
-        <Link href="/" className="text-xl font-bold tracking-tight" style={{ color: "var(--color-accent)" }}>
-          Vilyze
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image src="/logo.png" alt="Vilyze" width={28} height={28} className="rounded-lg" />
+          <span className="text-xl font-bold tracking-tight" style={{ color: "var(--color-accent)" }}>Vilyze</span>
         </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
-            Dashboard
+        <div className="flex items-center gap-3">
+          <Link href="/about" className="text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
+            About
+          </Link>
+          <Link href="/support" className="text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
+            Support
           </Link>
           <Link
             href="/login"
@@ -313,117 +164,40 @@ export default function UpcomingPage() {
           </div>
         </div>
 
-        {/* Donation meter */}
-        <section className="mb-16">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--color-accent)" }}>Community funding</h2>
-            <p className="text-sm max-w-md mx-auto" style={{ color: "var(--color-muted)" }}>
-              Server costs, API credits, and dev time — all funded by people who find Vilyze useful.
-            </p>
-          </div>
-          <div
-            className="rounded-2xl border p-6"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
-          >
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <p className="text-3xl font-bold" style={{ color: "var(--color-accent)" }}>$247</p>
-                <p className="text-sm mt-0.5" style={{ color: "var(--color-muted)" }}>raised of $1,000 goal</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold" style={{ color: "var(--color-primary)" }}>24.7%</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>42 contributors</p>
-              </div>
+        {/* Support callout */}
+        <Link
+          href="/support"
+          className="flex items-center justify-between p-6 rounded-2xl border transition-all hover:shadow-sm group"
+          style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "#FEF3C7", color: "#D97706" }}
+            >
+              <Heart size={18} strokeWidth={1.8} />
             </div>
-            <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "#E2E8F0" }}>
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: "24.7%",
-                  background: "linear-gradient(to right, var(--color-primary), #7C3AED)",
-                }}
-              />
+            <div>
+              <p className="font-semibold text-sm" style={{ color: "var(--color-accent)" }}>Support Vilyze</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
+                Send a tip, share feedback, or just say hi. Built by one person.
+              </p>
             </div>
-            <p className="text-xs mt-3" style={{ color: "var(--color-muted)" }}>
-              Funds server costs, AI API credits, and future infrastructure. Numbers updated manually.
-            </p>
           </div>
-        </section>
-
-        {/* Crypto donation */}
-        <section className="mb-16">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--color-accent)" }}>
-              Support Vilyze
-            </h2>
-            <p className="text-sm max-w-md mx-auto" style={{ color: "var(--color-muted)" }}>
-              Vilyze is built by one person. If it saves you time or helps your content improve, consider dropping a tip.
-              Every bit helps keep the servers on and new features coming.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {WALLETS.map((w) => (
-              <div
-                key={w.symbol}
-                className="rounded-2xl border p-5 flex flex-col gap-3"
-                style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold"
-                    style={{ background: w.bg, color: w.color }}
-                  >
-                    {w.icon}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: "var(--color-accent)" }}>{w.name}</p>
-                    <p className="text-xs" style={{ color: "var(--color-muted)" }}>{w.symbol}</p>
-                  </div>
-                </div>
-                <div
-                  className="rounded-xl p-3 flex items-center justify-between gap-2"
-                  style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
-                >
-                  <p
-                    className="text-[10px] font-mono break-all leading-tight"
-                    style={{ color: "var(--color-accent)" }}
-                  >
-                    {w.address}
-                  </p>
-                  <CopyButton text={w.address} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <p className="text-center text-xs mt-4" style={{ color: "var(--color-muted)" }}>
-            Placeholder addresses — real wallets will be added at v1.0 launch.
-          </p>
-        </section>
-
-        {/* Feedback */}
-        <section>
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--color-accent)" }}>Share feedback</h2>
-            <p className="text-sm max-w-md mx-auto" style={{ color: "var(--color-muted)" }}>
-              Found a bug? Have a feature idea? Just want to say hi? All good.
-            </p>
-          </div>
-          <div
-            className="max-w-lg mx-auto rounded-2xl border p-8"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
-          >
-            <FeedbackForm />
-          </div>
-        </section>
+          <span className="text-sm font-medium group-hover:translate-x-1 transition-transform" style={{ color: "var(--color-primary)" }}>
+            Support →
+          </span>
+        </Link>
       </div>
 
       <footer
         className="text-center py-8 text-xs border-t"
         style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}
       >
-        © 2025 Vilyze · Built with Next.js + Supabase + FastAPI
+        © 2025 Vilyze · Built by{" "}
+        <a href="https://github.com/Ravigiri2022" target="_blank" rel="noopener noreferrer" className="underline">
+          Ravi Giri
+        </a>
       </footer>
     </main>
   );

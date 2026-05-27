@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LayoutDashboard, Upload, Star, LogOut, UserCircle } from "lucide-react";
+import { LayoutDashboard, Upload, Star, LogOut, UserCircle, Heart, Info } from "lucide-react";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
@@ -38,6 +38,16 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <Link href="/upcoming" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50" style={{ color: "var(--color-accent)" }}>
           <Star size={16} />
           Roadmap
+        </Link>
+
+        <Link href="/support" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50" style={{ color: "var(--color-accent)" }}>
+          <Heart size={16} />
+          Support
+        </Link>
+
+        <Link href="/about" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50" style={{ color: "var(--color-accent)" }}>
+          <Info size={16} />
+          About
         </Link>
 
         <Link href="/dashboard/profile" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50" style={{ color: "var(--color-accent)" }}>
