@@ -1,60 +1,12 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
-import { useEffect, useRef, useState } from "react";
-import type { Metadata } from "next";
-import type { Profile } from "@/types";
+import { useRef } from "react";
+import { useProfile } from "@/hooks/useProfile";
 import { User, Camera, Check, Loader2 } from "lucide-react";
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [avatarUploading, setAvatarUploading] = useState(false);
+  const { profile, saving, saved, avatarUploading, error, saveName, uploadAvatar } = useProfile();
   const fileRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-      if (data) {
-        setProfile(data as Profile);
-        setName(data.display_name ?? "");
-      }
-    })();
-  }, []);
-
-  async function saveName() {
-    if (!profile) return;
-    setSaving(true);
-    const supabase = createClient();
-    await supabase
-      .from("profiles")
-      .update({ display_name: name.trim(), updated_at: new Date().toISOString() })
-      .eq("id", profile.id);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
-
-  async function uploadAvatar(file: File) {
-    if (!profile) return;
-    setAvatarUploading(true);
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${profile.id}/avatar.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
-      await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", profile.id);
-      setProfile((p) => p ? { ...p, avatar_url: avatarUrl } : p);
-    }
-    setAvatarUploading(false);
-  }
 
   if (!profile) {
     return (
@@ -106,7 +58,7 @@ export default function ProfilePage() {
           <div>
             <p className="font-semibold text-sm" style={{ color: "var(--color-accent)" }}>Profile photo</p>
             <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
-              {avatarUploading ? "Uploading…" : "JPG, PNG or WebP · Max 5MB"}
+              {avatarUploading ? "Compressing & uploading…" : "JPG, PNG or WebP · Auto-compressed to 256px"}
             </p>
           </div>
         </div>
@@ -122,9 +74,9 @@ export default function ProfilePage() {
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") saveName(); }}
+              defaultValue={profile.display_name ?? ""}
+              id="display-name"
+              onKeyDown={(e) => { if (e.key === "Enter") saveName((e.target as HTMLInputElement).value); }}
               placeholder="Your name"
               className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2"
               style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)" }}
@@ -145,9 +97,14 @@ export default function ProfilePage() {
             <p className="text-xs mt-1" style={{ color: "var(--color-muted)" }}>Email cannot be changed.</p>
           </div>
 
+          {error && <p className="text-xs" style={{ color: "var(--color-error)" }}>{error}</p>}
+
           <button
-            onClick={saveName}
-            disabled={saving || !name.trim()}
+            onClick={() => {
+              const input = document.getElementById("display-name") as HTMLInputElement;
+              if (input) saveName(input.value);
+            }}
+            disabled={saving}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white self-start disabled:opacity-50 transition-colors"
             style={{ background: saved ? "#10B981" : "var(--color-primary)" }}
           >

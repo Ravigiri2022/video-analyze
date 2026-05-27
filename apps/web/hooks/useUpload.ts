@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { uploadService } from "@/lib/services/upload";
 import { useRouter } from "next/navigation";
 
 type UploadState =
@@ -14,36 +15,30 @@ type UploadState =
 export function useUpload() {
   const [state, setState] = useState<UploadState>({ phase: "idle" });
   const router = useRouter();
-  const supabase = createClient();  // safe: hooks only run in browser
+  const supabase = createClient();
 
   async function uploadFile(file: File) {
     setState({ phase: "uploading", progress: 0, fileName: file.name });
 
     try {
-      // 1. Get signed upload URL + create job
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          content_type: file.type,
-          file_size: file.size,
-        }),
+      const { job_id, signed_url } = await uploadService.createJob({
+        filename: file.name,
+        content_type: file.type,
+        file_size: file.size,
       });
 
-      if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error ?? "Failed to get upload URL");
-      }
+      if (!signed_url) throw new Error("No upload URL returned");
 
-      const { signed_url, upload_path, job_id } = await res.json();
-
-      // 2. Upload directly to Supabase Storage with progress tracking
+      // Upload directly to Supabase Storage with XHR for progress tracking
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
-            setState({ phase: "uploading", progress: Math.round((e.loaded / e.total) * 100), fileName: file.name });
+            setState({
+              phase: "uploading",
+              progress: Math.round((e.loaded / e.total) * 100),
+              fileName: file.name,
+            });
           }
         });
         xhr.addEventListener("load", () => {
@@ -56,16 +51,8 @@ export function useUpload() {
         xhr.send(file);
       });
 
-      // 3. Confirm upload — mark job as pending
-      await fetch("/api/upload/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job_id, upload_path }),
-      });
-
+      await uploadService.confirmUpload(job_id);
       setState({ phase: "processing", fileName: file.name, jobId: job_id });
-
-      // 4. Subscribe to Realtime updates
       watchJob(job_id, file.name);
     } catch (err) {
       setState({ phase: "failed", error: (err as Error).message, fileName: file.name });
@@ -76,18 +63,7 @@ export function useUpload() {
     setState({ phase: "uploading", progress: 100, fileName: url });
 
     try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ youtube_url: url }),
-      });
-
-      if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error ?? "Failed to submit YouTube URL");
-      }
-
-      const { job_id } = await res.json();
+      const { job_id } = await uploadService.createJob({ youtube_url: url });
       setState({ phase: "processing", fileName: url, jobId: job_id });
       watchJob(job_id, url);
     } catch (err) {
@@ -111,11 +87,11 @@ export function useUpload() {
             channel.unsubscribe();
             setState({ phase: "failed", error: "Analysis failed. Please try again.", fileName });
           }
-        }
+        },
       )
       .subscribe();
 
-    // Fallback: poll every 8s in case Realtime isn't available
+    // Fallback: poll every 8s in case Realtime is unavailable
     const interval = setInterval(async () => {
       const { data } = await supabase.from("jobs").select("status").eq("id", jobId).single();
       if (data?.status === "done") {

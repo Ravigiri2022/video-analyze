@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Download, Mail, Check, Loader2 } from "lucide-react";
+import { analysisService } from "@/lib/services/analysis";
 
 interface Props {
   jobId: string;
@@ -22,12 +23,8 @@ export function AnalysisActions({ jobId }: Props) {
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
-    const res = await fetch(`/api/analysis/${jobId}/email-report`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: emailTo, cc: emailCc || undefined }),
-    });
-    if (res.ok) {
+    try {
+      await analysisService.emailReport(jobId, emailTo, emailCc);
       setStatus("sent");
       setTimeout(() => {
         setShowModal(false);
@@ -35,7 +32,7 @@ export function AnalysisActions({ jobId }: Props) {
         setEmailTo("");
         setEmailCc("");
       }, 2500);
-    } else {
+    } catch {
       setStatus("error");
     }
   }
@@ -87,7 +84,7 @@ export function AnalysisActions({ jobId }: Props) {
                 <div>
                   <p className="font-semibold text-sm" style={{ color: "var(--color-accent)" }}>Report sent!</p>
                   <p className="text-xs mt-1" style={{ color: "var(--color-muted)" }}>
-                    Check Mailpit at port 54324 locally
+                    Check your inbox
                   </p>
                 </div>
               </div>

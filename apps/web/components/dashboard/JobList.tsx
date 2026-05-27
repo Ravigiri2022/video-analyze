@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Video, Archive, ArchiveRestore, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { jobsService } from "@/lib/services/jobs";
 import type { Job } from "@/types";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -41,11 +42,7 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
 
   async function archiveToggle(job: Job) {
     setBusy(job.id);
-    await fetch(`/api/jobs/${job.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_archived: !job.is_archived }),
-    });
+    await jobsService.archive(job.id, !job.is_archived);
     setBusy(null);
     startRefresh(() => router.refresh());
   }
@@ -53,7 +50,7 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
   async function deleteJob(id: string) {
     setBusy(id);
     setConfirmDelete(null);
-    await fetch(`/api/jobs/${id}`, { method: "DELETE" });
+    await jobsService.remove(id);
     setBusy(null);
     startRefresh(() => router.refresh());
   }
