@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+apps/worker/.venv/
+apps/worker/venv/
+*.egg-info/
+dist/
+build/
+
+# Environment files - NEVER commit these
+.env
+.env.local
+.env.*.local
+apps/web/.env.local
+apps/worker/.env
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp video files
+apps/worker/tmp/
+*.tmp
+
+# Logs
+*.log
+npm-debug.log*
