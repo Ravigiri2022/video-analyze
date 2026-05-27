@@ -31,7 +31,7 @@ create type job_status as enum ('pending', 'processing', 'done', 'failed', 'canc
 create type input_type as enum ('upload', 'youtube');
 
 create table public.jobs (
-  id              uuid primary key default uuid_generate_v4(),
+  id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references public.profiles(id) on delete cascade,
   status          job_status not null default 'pending',
   input_type      input_type not null,
@@ -59,7 +59,7 @@ create table public.jobs (
 
 -- ─── ANALYSES (results) ────────────────────────────────────────────
 create table public.analyses (
-  id                    uuid primary key default uuid_generate_v4(),
+  id                    uuid primary key default gen_random_uuid(),
   job_id                uuid not null unique references public.jobs(id) on delete cascade,
   user_id               uuid not null references public.profiles(id) on delete cascade,
 
@@ -104,7 +104,7 @@ create table public.analyses (
 
 -- ─── USAGE TRACKING ────────────────────────────────────────────────
 create table public.usage_events (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references public.profiles(id) on delete cascade,
   event_type  text not null,
   job_id      uuid references public.jobs(id),
