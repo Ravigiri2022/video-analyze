@@ -2,8 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { NextRequest } from "next/server";
 import { ALLOWED_TYPES, MAX_FILE_SIZE } from "@/lib/validations";
 
-const RATE_LIMIT = 5; // jobs per hour
-
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -12,17 +10,31 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limit check
-  const oneHourAgo = new Date(Date.now() - 3600 * 1000).toISOString();
-  const { count } = await supabase
-    .from("usage_events")
+  // Fetch profile to get their monthly limit
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("monthly_job_limit")
+    .eq("id", user.id)
+    .single();
+
+  const monthlyLimit: number = profile?.monthly_job_limit ?? 3;
+
+  // Count jobs submitted since start of current month (self-resetting, no cron needed)
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { count: usedThisMonth } = await supabase
+    .from("jobs")
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id)
-    .eq("event_type", "job_submitted")
-    .gte("created_at", oneHourAgo);
+    .gte("created_at", startOfMonth.toISOString());
 
-  if ((count ?? 0) >= RATE_LIMIT) {
-    return Response.json({ error: "Rate limit exceeded. Max 5 analyses per hour on free plan." }, { status: 429 });
+  if ((usedThisMonth ?? 0) >= monthlyLimit) {
+    return Response.json(
+      { error: `Monthly limit reached. You've used ${usedThisMonth} of ${monthlyLimit} analyses this month.` },
+      { status: 429 }
+    );
   }
 
   const body = await req.json();
@@ -51,17 +63,16 @@ export async function POST(req: NextRequest) {
   const { filename, content_type, file_size } = body;
 
   if (!ALLOWED_TYPES.includes(content_type)) {
-    return Response.json({ error: "Unsupported file type" }, { status: 400 });
+    return Response.json({ error: "Unsupported file type. Use MP4, WebM, MOV, or AVI." }, { status: 400 });
   }
   if (file_size > MAX_FILE_SIZE) {
-    return Response.json({ error: "File too large (max 200MB)" }, { status: 400 });
+    return Response.json({ error: "File too large. Max 100MB." }, { status: 400 });
   }
 
   const ext = filename.split(".").pop() ?? "mp4";
   const jobId = crypto.randomUUID();
   const uploadPath = `${user.id}/${jobId}.${ext}`;
 
-  // Create job first (before upload URL)
   const { error: jobError } = await supabase
     .from("jobs")
     .insert({
@@ -76,7 +87,7 @@ export async function POST(req: NextRequest) {
 
   if (jobError) return Response.json({ error: jobError.message }, { status: 500 });
 
-  // Create signed upload URL (5 minute expiry)
+  // Signed upload URL — 5 minute expiry
   const { data: signedData, error: signedError } = await supabase.storage
     .from("videos")
     .createSignedUploadUrl(uploadPath);
@@ -92,5 +103,7 @@ export async function POST(req: NextRequest) {
     signed_url: signedData.signedUrl,
     upload_path: uploadPath,
     job_id: jobId,
+    credits_used: (usedThisMonth ?? 0) + 1,
+    credits_limit: monthlyLimit,
   });
 }

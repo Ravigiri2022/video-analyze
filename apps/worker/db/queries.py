@@ -1,5 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from db.client import get_client
+
+
+def reset_stuck_jobs() -> None:
+    db = get_client()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=15)).isoformat()
+    db.table("jobs").update({"status": "pending"}).eq("status", "processing").lt("started_at", cutoff).execute()
 
 
 def fetch_pending_job() -> dict | None:

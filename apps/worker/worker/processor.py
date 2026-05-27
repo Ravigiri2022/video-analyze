@@ -1,7 +1,9 @@
 import os
 import uuid
+import json
 import shutil
 import logging
+import subprocess
 import numpy as np
 
 from config import settings
@@ -9,6 +11,22 @@ from db import queries
 from pipeline import downloader, ffmpeg_utils, transcriber, motion, audio_analysis, continuity, attention, gpt_insights, thumbnail as thumb_mod
 
 logger = logging.getLogger(__name__)
+
+
+def _preflight_youtube_duration(youtube_url: str) -> None:
+    result = subprocess.run(
+        ["yt-dlp", "--dump-json", "--no-download", "--no-playlist", youtube_url],
+        capture_output=True, text=True, timeout=30,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Could not fetch video info: {result.stderr[:200]}")
+    try:
+        info = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return
+    duration = info.get("duration")
+    if duration and duration > settings.max_video_duration_s:
+        raise ValueError(f"YouTube video too long: {int(duration)}s (max {settings.max_video_duration_s}s)")
 
 
 def process_job(job: dict) -> None:
@@ -22,39 +40,62 @@ def process_job(job: dict) -> None:
         processed_path = os.path.join(tmp_dir, "processed.mp4")
         audio_path = os.path.join(tmp_dir, "audio.wav")
 
+        def stage(name: str) -> None:
+            logger.info(f"[{job_id}] STAGE: {name}")
+
         # ── 1. Download ───────────────────────────────────────────────
-        logger.info(f"[{job_id}] Downloading video...")
-        if job["input_type"] == "youtube":
-            downloader.download_from_youtube(job["youtube_url"], raw_path)
-        else:
-            signed_url = queries.download_video_signed_url(job["storage_path"])
-            downloader.download_from_storage(signed_url, raw_path)
+        stage("download")
+        try:
+            if job["input_type"] == "youtube":
+                _preflight_youtube_duration(job["youtube_url"])
+                downloader.download_from_youtube(job["youtube_url"], raw_path)
+            else:
+                signed_url = queries.download_video_signed_url(job["storage_path"])
+                downloader.download_from_storage(signed_url, raw_path)
+        except Exception as e:
+            raise RuntimeError(f"Download failed: {e}") from e
 
         # ── 1b. Capture thumbnail ─────────────────────────────────────
-        thumb_url = thumb_mod.capture_and_upload(raw_path, user_id, job_id)
-        if thumb_url:
-            queries.update_thumbnail_url(job_id, thumb_url)
+        try:
+            thumb_url = thumb_mod.capture_and_upload(raw_path, user_id, job_id)
+            if thumb_url:
+                queries.update_thumbnail_url(job_id, thumb_url)
+        except Exception as e:
+            logger.warning(f"[{job_id}] Thumbnail failed (non-fatal): {e}")
 
         # ── 2. Validate duration ──────────────────────────────────────
+        stage("validate")
         duration = ffmpeg_utils.get_duration(raw_path)
         if duration > settings.max_video_duration_s:
             raise ValueError(f"Video too long: {duration:.0f}s (max {settings.max_video_duration_s}s)")
 
         # ── 3. Pre-process ────────────────────────────────────────────
-        logger.info(f"[{job_id}] Preprocessing with ffmpeg...")
-        ffmpeg_utils.preprocess_video(raw_path, processed_path, audio_path)
+        stage("ffmpeg preprocess")
+        try:
+            ffmpeg_utils.preprocess_video(raw_path, processed_path, audio_path)
+        except Exception as e:
+            raise RuntimeError(f"FFmpeg failed: {e}") from e
 
         # ── 4. Transcribe ─────────────────────────────────────────────
-        logger.info(f"[{job_id}] Transcribing with Whisper...")
-        transcript_df = transcriber.transcribe(audio_path)
+        stage("whisper transcribe")
+        try:
+            transcript_df = transcriber.transcribe(audio_path)
+        except Exception as e:
+            raise RuntimeError(f"Transcription failed: {e}") from e
 
         # ── 5. Motion scores ──────────────────────────────────────────
-        logger.info(f"[{job_id}] Computing motion scores...")
-        motion_scores, motion_times, video_fps = motion.compute_motion(processed_path)
+        stage("motion analysis")
+        try:
+            motion_scores, motion_times, video_fps = motion.compute_motion(processed_path)
+        except Exception as e:
+            raise RuntimeError(f"Motion analysis failed: {e}") from e
 
         # ── 6. Audio analysis ─────────────────────────────────────────
-        logger.info(f"[{job_id}] Analyzing audio...")
-        rms, rms_times, silence_threshold, silence_analysis = audio_analysis.analyze_audio(audio_path)
+        stage("audio analysis")
+        try:
+            rms, rms_times, silence_threshold, silence_analysis = audio_analysis.analyze_audio(audio_path)
+        except Exception as e:
+            raise RuntimeError(f"Audio analysis failed: {e}") from e
 
         # ── 7. Align onto 1-second grid ───────────────────────────────
         video_duration = int(motion_times[-1]) if motion_times else int(duration)
@@ -126,15 +167,19 @@ def process_job(job: dict) -> None:
         grade = "A" if final_score >= 80 else "B" if final_score >= 70 else "C" if final_score >= 60 else "D" if final_score >= 50 else "F"
 
         # ── 11. GPT insights ──────────────────────────────────────────
-        logger.info(f"[{job_id}] Generating GPT insights...")
+        stage("gpt insights")
         hook_text = " ".join(transcript_df[transcript_df["start"] < 15]["text"].tolist())
         transcript_excerpt = " ".join(transcript_df["text"].tolist())
-        gpt_result = gpt_insights.generate_insights(
-            final_score, grade, s_avg, m_avg, e_avg,
-            annotated_drops, silence_analysis,
-            avg_continuity, avg_speech_rate,
-            transcript_excerpt, hook_text,
-        )
+        try:
+            gpt_result = gpt_insights.generate_insights(
+                final_score, grade, s_avg, m_avg, e_avg,
+                annotated_drops, silence_analysis,
+                avg_continuity, avg_speech_rate,
+                transcript_excerpt, hook_text,
+            )
+        except Exception as e:
+            logger.warning(f"[{job_id}] GPT insights failed (using defaults): {e}")
+            gpt_result = {}
 
         # ── 12. Build transcript segments ─────────────────────────────
         segments = transcript_df.to_dict("records")
@@ -149,6 +194,7 @@ def process_job(job: dict) -> None:
         dramatic_pause_count = sum(1 for s in silence_analysis if s["type"] == "dramatic_pause")
 
         # ── 14. Save to Supabase ──────────────────────────────────────
+        stage("save analysis")
         analysis = {
             "job_id": job_id,
             "user_id": user_id,
@@ -177,8 +223,10 @@ def process_job(job: dict) -> None:
             "video_fps": round(video_fps, 2),
         }
 
-        queries.save_analysis(analysis)
-        logger.info(f"[{job_id}] Done. Score={final_score} Grade={grade}")
+        try:
+            queries.save_analysis(analysis)
+        except Exception as e:
+            raise RuntimeError(f"Supabase save failed: {e}") from e
 
         # ── 15. Delete uploaded video from storage (keep only thumbnail) ─
         if job.get("storage_path"):

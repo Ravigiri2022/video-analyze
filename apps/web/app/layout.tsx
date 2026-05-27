@@ -18,6 +18,11 @@ export const metadata: Metadata = {
     default: "Vilyze — AI Video Analysis",
   },
   description: "Upload any video or YouTube link and get AI-powered insights: attention curves, transcripts, engagement metrics, and recommendations.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     type: "website",
     siteName: "Vilyze",

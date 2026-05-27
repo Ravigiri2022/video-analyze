@@ -78,14 +78,16 @@ export function useUpload() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "jobs", filter: `id=eq.${jobId}` },
         (payload) => {
-          const job = payload.new as { status: string };
+          const job = payload.new as { status: string; error_message?: string };
           if (job.status === "done") {
             channel.unsubscribe();
             setState({ phase: "done", jobId });
             router.push(`/analysis/${jobId}`);
           } else if (job.status === "failed") {
             channel.unsubscribe();
-            setState({ phase: "failed", error: "Analysis failed. Please try again.", fileName });
+            const msg = job.error_message ?? "Analysis failed. Please try again.";
+            console.error(`[job:${jobId}] failed —`, msg);
+            setState({ phase: "failed", error: msg, fileName });
           }
         },
       )
@@ -93,14 +95,16 @@ export function useUpload() {
 
     // Fallback: poll every 8s in case Realtime is unavailable
     const interval = setInterval(async () => {
-      const { data } = await supabase.from("jobs").select("status").eq("id", jobId).single();
+      const { data } = await supabase.from("jobs").select("status, error_message").eq("id", jobId).single();
       if (data?.status === "done") {
         clearInterval(interval);
         setState({ phase: "done", jobId });
         router.push(`/analysis/${jobId}`);
       } else if (data?.status === "failed") {
         clearInterval(interval);
-        setState({ phase: "failed", error: "Analysis failed. Please try again.", fileName });
+        const msg = data.error_message ?? "Analysis failed. Please try again.";
+        console.error(`[job:${jobId}] failed —`, msg);
+        setState({ phase: "failed", error: msg, fileName });
       }
     }, 8000);
   }

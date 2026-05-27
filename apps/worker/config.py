@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     openrouter_model: str = "openrouter/owl-alpha"
     poll_interval_s: int = 5
     max_retries: int = 3
-    max_video_duration_s: int = 600
-    max_file_size_mb: int = 200
+    max_video_duration_s: int = 300
+    max_file_size_mb: int = 100
     rate_limit_jobs_per_hour: int = 5
     whisper_model: str = "base"
     log_level: str = "INFO"

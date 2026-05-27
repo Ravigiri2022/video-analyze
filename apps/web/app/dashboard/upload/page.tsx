@@ -56,13 +56,28 @@ export default function UploadPage() {
         )}
 
         {state.phase === "failed" && (
-          <button
-            onClick={reset}
-            className="text-sm font-medium px-4 py-2 rounded-lg border self-start"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}
-          >
-            Try again
-          </button>
+          <>
+            {state.error?.toLowerCase().includes("limit") ? (
+              <div
+                className="rounded-xl border p-5 flex flex-col gap-3"
+                style={{ background: "#FEF2F2", borderColor: "#FECACA" }}
+              >
+                <p className="text-sm font-semibold" style={{ color: "#991B1B" }}>Monthly limit reached</p>
+                <p className="text-sm" style={{ color: "#B91C1C" }}>{state.error}</p>
+                <p className="text-xs" style={{ color: "#DC2626" }}>
+                  Your limit resets on the 1st of next month. Need more? Contact us.
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={reset}
+                className="text-sm font-medium px-4 py-2 rounded-lg border self-start"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}
+              >
+                Try again
+              </button>
+            )}
+          </>
         )}
 
         {/* Limits info */}
@@ -70,9 +85,9 @@ export default function UploadPage() {
           <div className="rounded-xl border p-4 flex flex-col gap-2" style={{ borderColor: "var(--color-border)", background: "#F8FAFC" }}>
             <p className="text-xs font-semibold" style={{ color: "var(--color-accent)" }}>Limits on free plan</p>
             <ul className="text-xs flex flex-col gap-1" style={{ color: "var(--color-muted)" }}>
-              <li>· Max 5 analyses per hour</li>
-              <li>· Max 200 MB per video</li>
-              <li>· Max 10 minutes duration</li>
+              <li>· Max 3 analyses per month</li>
+              <li>· Max 100 MB per video</li>
+              <li>· Max 5 minutes duration</li>
               <li>· Supported formats: MP4, WebM, MOV, AVI</li>
             </ul>
           </div>

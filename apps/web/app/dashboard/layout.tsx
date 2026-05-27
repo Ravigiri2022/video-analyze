@@ -10,6 +10,18 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("id", user.id)
+    .single();
+
+  const avatarUrl =
+    profile?.avatar_url ??
+    user.user_metadata?.avatar_url ??
+    user.user_metadata?.picture ??
+    null;
+
   async function signOut() {
     "use server";
     const supabase2 = await createClient();
@@ -35,36 +47,48 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           Upload Video
         </Link>
 
-        <Link href="/upcoming" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50" style={{ color: "var(--color-accent)" }}>
-          <Star size={16} />
-          Roadmap
-        </Link>
-
-        <Link href="/support" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50" style={{ color: "var(--color-accent)" }}>
-          <Heart size={16} />
-          Support
-        </Link>
-
-        <Link href="/about" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50" style={{ color: "var(--color-accent)" }}>
-          <Info size={16} />
-          About
-        </Link>
-
-        <Link href="/dashboard/profile" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50" style={{ color: "var(--color-accent)" }}>
-          <UserCircle size={16} />
-          Profile
-        </Link>
-
         <div className="flex-1" />
 
-        <div className="border-t pt-4 px-2" style={{ borderColor: "var(--color-border)" }}>
-          <p className="text-xs font-medium truncate mb-2" style={{ color: "var(--color-muted)" }}>{user.email}</p>
+        <div className="border-t pt-4 flex flex-col gap-2" style={{ borderColor: "var(--color-border)" }}>
+          {/* Profile button with avatar */}
+          <Link
+            href="/dashboard/profile"
+            className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50"
+            style={{ color: "var(--color-accent)" }}
+          >
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" width={28} height={28} className="rounded-full object-cover shrink-0" style={{ width: 28, height: 28 }} />
+            ) : (
+              <UserCircle size={28} style={{ color: "var(--color-muted)" }} />
+            )}
+            <span>Profile</span>
+          </Link>
+
+          <p className="text-xs font-medium truncate px-2" style={{ color: "var(--color-muted)" }}>{user.email}</p>
+
           <form action={signOut}>
             <button type="submit" className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border w-full" style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}>
               <LogOut size={12} />
               Sign out
             </button>
           </form>
+
+          {/* Footer links row */}
+          <div className="flex items-center gap-1 pt-1">
+            <Link href="/upcoming" className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors hover:bg-slate-50" style={{ color: "var(--color-muted)" }}>
+              <Star size={11} />
+              Roadmap
+            </Link>
+            <Link href="/support" className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors hover:bg-slate-50" style={{ color: "var(--color-muted)" }}>
+              <Heart size={11} />
+              Support
+            </Link>
+            <Link href="/about" className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors hover:bg-slate-50" style={{ color: "var(--color-muted)" }}>
+              <Info size={11} />
+              About
+            </Link>
+          </div>
         </div>
       </aside>
 

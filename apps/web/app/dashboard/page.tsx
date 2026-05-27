@@ -54,6 +54,20 @@ export default async function DashboardPage({
   const total      = count ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  // Credit usage this month
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+  const [{ count: usedThisMonth }, { data: profile }] = await Promise.all([
+    supabase.from("jobs").select("*", { count: "exact", head: true })
+      .eq("user_id", user.id).gte("created_at", startOfMonth.toISOString()),
+    supabase.from("profiles").select("monthly_job_limit").eq("id", user.id).single(),
+  ]);
+  const limit = profile?.monthly_job_limit ?? 3;
+  const used = usedThisMonth ?? 0;
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  const creditColor = pct >= 100 ? "var(--color-error)" : pct >= 66 ? "#F59E0B" : "var(--color-primary)";
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
@@ -71,6 +85,34 @@ export default async function DashboardPage({
           <Plus size={16} strokeWidth={2.5} />
           New analysis
         </Link>
+      </div>
+
+      {/* Credit usage banner */}
+      <div
+        className="rounded-xl border p-4 mb-6 flex items-center justify-between gap-4"
+        style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+      >
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
+              Analyses this month
+            </p>
+            <p className="text-xs font-bold" style={{ color: creditColor }}>
+              {used} / {limit}
+            </p>
+          </div>
+          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "#E2E8F0" }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${pct}%`, background: creditColor }}
+            />
+          </div>
+          {pct >= 100 && (
+            <p className="text-xs mt-1.5" style={{ color: "var(--color-error)" }}>
+              Monthly limit reached. Resets on the 1st.
+            </p>
+          )}
+        </div>
       </div>
 
       <DashboardFilters q={q} status={status} sort={sort} order={orderP} />
