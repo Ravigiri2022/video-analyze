@@ -27,6 +27,14 @@ body {
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
+@keyframes vilyze-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.vilyze-loading-bar {
+  animation: vilyze-slide 1.2s ease-in-out infinite;
+}
+
 @keyframes vilyze-morph {
   0%, 100% {
     clip-path: polygon(50% 0%, 0% 100%, 100% 100%);

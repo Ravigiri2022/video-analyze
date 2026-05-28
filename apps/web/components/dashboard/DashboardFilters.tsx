@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
-import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 
 const STATUSES = [
   { value: "all",        label: "All" },
@@ -39,7 +39,7 @@ export function DashboardFilters({ q, status, sort, order }: Props) {
   }, [router, pathname, searchParams]);
 
   return (
-    <div className="flex flex-col gap-3 mb-5">
+    <div className="flex flex-col gap-3 mb-5 relative">
       {/* Search */}
       <div
         className="flex items-center gap-2 px-3 py-2.5 rounded-xl border"
@@ -88,10 +88,7 @@ export function DashboardFilters({ q, status, sort, order }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          {isPending
-            ? <Loader2 size={14} color="var(--color-primary)" className="animate-spin" />
-            : <SlidersHorizontal size={14} color="var(--color-muted)" />
-          }
+          <SlidersHorizontal size={14} color="var(--color-muted)" />
           <select
             value={`${sort}|${order}`}
             onChange={(e) => {
@@ -111,6 +108,12 @@ export function DashboardFilters({ q, status, sort, order }: Props) {
           </select>
         </div>
       </div>
+      {/* Loading bar */}
+      {isPending && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 overflow-hidden rounded-full" style={{ background: "#DBEAFE" }}>
+          <div className="vilyze-loading-bar h-full w-1/4 rounded-full" style={{ background: "var(--color-primary)" }} />
+        </div>
+      )}
     </div>
   );
 }
