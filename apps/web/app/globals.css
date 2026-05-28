@@ -26,3 +26,20 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+@keyframes vilyze-morph {
+  0%, 100% {
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    background: linear-gradient(135deg, #2563EB, #7C3AED);
+  }
+  50% {
+    clip-path: circle(50% at 50% 50%);
+    background: linear-gradient(135deg, #7C3AED, #2563EB);
+  }
+}
+
+.vilyze-morph {
+  width: 56px;
+  height: 56px;
+  animation: vilyze-morph 2s ease-in-out infinite;
+}

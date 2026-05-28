@@ -120,6 +120,28 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
       {a.transcript_segments.length > 0 && (
         <TranscriptPanel segments={a.transcript_segments} fullText={a.full_transcript} />
       )}
+
+      {/* Feedback callout */}
+      <div
+        className="rounded-2xl border p-6 flex items-center justify-between gap-6"
+        style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)", borderColor: "#BFDBFE" }}
+      >
+        <div>
+          <p className="font-semibold text-sm mb-1" style={{ color: "#1E3A8A" }}>
+            Was this analysis helpful?
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: "#3B82F6" }}>
+            Your feedback helps improve Vilyze — one person reads every message.
+          </p>
+        </div>
+        <Link
+          href="/support"
+          className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-white whitespace-nowrap"
+          style={{ background: "#2563EB" }}
+        >
+          Rate &amp; Feedback →
+        </Link>
+      </div>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { JobList } from "@/components/dashboard/JobList";
+import { CreditButton } from "@/components/dashboard/CreditButton";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -60,13 +61,13 @@ export default async function DashboardPage({
   startOfMonth.setHours(0, 0, 0, 0);
   const [{ count: usedThisMonth }, { data: profile }] = await Promise.all([
     supabase.from("jobs").select("*", { count: "exact", head: true })
-      .eq("user_id", user.id).gte("created_at", startOfMonth.toISOString()),
+      .eq("user_id", user.id)
+      .gte("created_at", startOfMonth.toISOString())
+      .in("status", ["pending", "processing", "done"]),
     supabase.from("profiles").select("monthly_job_limit").eq("id", user.id).single(),
   ]);
   const limit = profile?.monthly_job_limit ?? 3;
   const used = usedThisMonth ?? 0;
-  const pct = Math.min(100, Math.round((used / limit) * 100));
-  const creditColor = pct >= 100 ? "var(--color-error)" : pct >= 66 ? "#F59E0B" : "var(--color-primary)";
 
   return (
     <div className="p-8">
@@ -77,41 +78,16 @@ export default async function DashboardPage({
             {total} video{total !== 1 ? "s" : ""}
           </p>
         </div>
-        <Link
-          href="/dashboard/upload"
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-          style={{ background: "var(--color-primary)" }}
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          New analysis
-        </Link>
-      </div>
-
-      {/* Credit usage banner */}
-      <div
-        className="rounded-xl border p-4 mb-6 flex items-center justify-between gap-4"
-        style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
-      >
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
-              Analyses this month
-            </p>
-            <p className="text-xs font-bold" style={{ color: creditColor }}>
-              {used} / {limit}
-            </p>
-          </div>
-          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "#E2E8F0" }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${pct}%`, background: creditColor }}
-            />
-          </div>
-          {pct >= 100 && (
-            <p className="text-xs mt-1.5" style={{ color: "var(--color-error)" }}>
-              Monthly limit reached. Resets on the 1st.
-            </p>
-          )}
+        <div className="flex items-center gap-3">
+          <CreditButton used={used} limit={limit} />
+          <Link
+            href="/dashboard/upload"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+            style={{ background: "var(--color-primary)" }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            New analysis
+          </Link>
         </div>
       </div>
 

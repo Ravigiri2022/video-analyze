@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     .from("jobs")
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id)
-    .gte("created_at", startOfMonth.toISOString());
+    .gte("created_at", startOfMonth.toISOString())
+    .in("status", ["pending", "processing", "done"]);
 
   if ((usedThisMonth ?? 0) >= monthlyLimit) {
     return Response.json(
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     .insert({
       id: jobId,
       user_id: user.id,
-      status: "pending",
+      status: "uploading",
       input_type: "upload",
       storage_path: uploadPath,
       original_name: filename,

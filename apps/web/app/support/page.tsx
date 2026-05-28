@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { Heart, ArrowRight, Check } from "lucide-react";
+import { FeedbackHistory } from "@/components/support/FeedbackHistory";
 
 const WALLETS = [
   {
@@ -274,6 +275,8 @@ export default function SupportPage() {
             <FeedbackForm />
           </div>
         </section>
+
+        <FeedbackHistory />
       </div>
 
       <footer

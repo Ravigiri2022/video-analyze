@@ -3,6 +3,7 @@
 import { UploadZone } from "@/components/upload/UploadZone";
 import { YouTubeInput } from "@/components/upload/YouTubeInput";
 import { UploadProgress } from "@/components/upload/UploadProgress";
+import { ProcessingOverlay } from "@/components/ui/ProcessingOverlay";
 import { useUpload } from "@/hooks/useUpload";
 
 export default function UploadPage() {
@@ -13,6 +14,7 @@ export default function UploadPage() {
 
   return (
     <div className="p-8 max-w-2xl">
+      <ProcessingOverlay visible={state.phase === "processing"} />
       <div className="mb-8">
         <h1 className="text-2xl font-bold" style={{ color: "var(--color-accent)" }}>Analyze a video</h1>
         <p className="text-sm mt-1" style={{ color: "var(--color-muted)" }}>

@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
 
   if (!job) return Response.json({ error: "Job not found" }, { status: 404 });
 
-  // Mark ready for worker (status remains "pending" — worker will pick it up)
-  await supabase.from("jobs").update({ updated_at: new Date().toISOString() }).eq("id", job_id);
+  // File is now in storage — mark as pending so the worker picks it up
+  await supabase.from("jobs").update({ status: "pending", updated_at: new Date().toISOString() }).eq("id", job_id);
 
   return Response.json({ ok: true });
 }
