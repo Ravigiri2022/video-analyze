@@ -9,6 +9,7 @@ import type { Job } from "@/types";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   pending:    { bg: "#FEF3C7", text: "#92400E", label: "Queued" },
+  uploading:  { bg: "#F0F9FF", text: "#0369A1", label: "Uploading" },
   processing: { bg: "#DBEAFE", text: "#1E40AF", label: "Processing" },
   done:       { bg: "#D1FAE5", text: "#065F46", label: "Done" },
   failed:     { bg: "#FEE2E2", text: "#991B1B", label: "Failed" },
@@ -28,7 +29,26 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [isRefreshing, startRefresh] = useTransition();
+
+  const allSelected = jobs.length > 0 && jobs.every((j) => selected.has(j.id));
+  const someSelected = selected.size > 0;
+
+  function toggleAll() {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(jobs.map((j) => j.id)));
+  }
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   function buildPageUrl(p: number) {
     const params = new URLSearchParams();
@@ -55,6 +75,23 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
     startRefresh(() => router.refresh());
   }
 
+  async function bulkArchive(archive: boolean) {
+    setBulkBusy(true);
+    await Promise.all([...selected].map((id) => jobsService.archive(id, archive)));
+    setSelected(new Set());
+    setBulkBusy(false);
+    startRefresh(() => router.refresh());
+  }
+
+  async function bulkDelete() {
+    setBulkBusy(true);
+    setConfirmBulkDelete(false);
+    await Promise.all([...selected].map((id) => jobsService.remove(id)));
+    setSelected(new Set());
+    setBulkBusy(false);
+    startRefresh(() => router.refresh());
+  }
+
   if (jobs.length === 0) {
     return (
       <div
@@ -73,11 +110,7 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
           )}
         </div>
         {filters.status === "all" && !filters.q && (
-          <Link
-            href="/dashboard/upload"
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
-            style={{ background: "var(--color-primary)" }}
-          >
+          <Link href="/dashboard/upload" className="px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: "var(--color-primary)" }}>
             Upload your first video
           </Link>
         )}
@@ -87,40 +120,87 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
 
   return (
     <>
-      {/* Delete confirm modal */}
+      {/* Single delete confirm */}
       {confirmDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.4)" }}
-          onClick={() => setConfirmDelete(null)}
-        >
-          <div
-            className="rounded-2xl border p-6 max-w-sm w-full shadow-xl"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setConfirmDelete(null)}>
+          <div className="rounded-2xl border p-6 max-w-sm w-full shadow-xl" style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }} onClick={(e) => e.stopPropagation()}>
             <h3 className="font-semibold mb-2" style={{ color: "var(--color-accent)" }}>Delete this video?</h3>
             <p className="text-sm mb-5" style={{ color: "var(--color-muted)" }}>
-              The job and all analysis data will be permanently deleted. This cannot be undone.
+              The job and all analysis data will be permanently deleted.
             </p>
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="px-4 py-2 rounded-lg text-sm border"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => deleteJob(confirmDelete)}
-                disabled={busy === confirmDelete}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-70"
-                style={{ background: "var(--color-error)" }}
-              >
+              <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}>Cancel</button>
+              <button onClick={() => deleteJob(confirmDelete)} disabled={busy === confirmDelete} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-70" style={{ background: "var(--color-error)" }}>
                 {busy === confirmDelete && <Loader2 size={13} className="animate-spin" />}
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk delete confirm */}
+      {confirmBulkDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setConfirmBulkDelete(false)}>
+          <div className="rounded-2xl border p-6 max-w-sm w-full shadow-xl" style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }} onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold mb-2" style={{ color: "var(--color-accent)" }}>Delete {selected.size} videos?</h3>
+            <p className="text-sm mb-5" style={{ color: "var(--color-muted)" }}>
+              All selected jobs and their analysis data will be permanently deleted.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmBulkDelete(false)} className="px-4 py-2 rounded-lg text-sm border" style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}>Cancel</button>
+              <button onClick={bulkDelete} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: "var(--color-error)" }}>
+                Delete {selected.size}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk action bar */}
+      {someSelected && (
+        <div
+          className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border mb-3"
+          style={{ background: "#EFF6FF", borderColor: "#BFDBFE" }}
+        >
+          <p className="text-sm font-semibold" style={{ color: "#1E40AF" }}>
+            {selected.size} selected
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => bulkArchive(true)}
+              disabled={bulkBusy}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-50"
+              style={{ borderColor: "#BFDBFE", color: "#1E40AF", background: "white" }}
+            >
+              {bulkBusy ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />}
+              Archive
+            </button>
+            <button
+              onClick={() => bulkArchive(false)}
+              disabled={bulkBusy}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-50"
+              style={{ borderColor: "#BFDBFE", color: "#1E40AF", background: "white" }}
+            >
+              {bulkBusy ? <Loader2 size={12} className="animate-spin" /> : <ArchiveRestore size={12} />}
+              Unarchive
+            </button>
+            <button
+              onClick={() => setConfirmBulkDelete(true)}
+              disabled={bulkBusy}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-50"
+              style={{ borderColor: "#FECACA", color: "#DC2626", background: "white" }}
+            >
+              <Trash2 size={12} />
+              Delete
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-xs px-2 py-1.5 rounded-lg"
+              style={{ color: "#64748B" }}
+            >
+              Clear
+            </button>
           </div>
         </div>
       )}
@@ -132,27 +212,46 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
         </div>
       )}
 
+      {/* Select-all header */}
+      <div className="flex items-center gap-3 px-4 py-2 mb-1">
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={toggleAll}
+          className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
+        />
+        <span className="text-xs font-medium" style={{ color: "var(--color-muted)" }}>
+          {allSelected ? "Deselect all" : "Select all"}
+        </span>
+      </div>
+
       <div className="flex flex-col gap-3" style={{ opacity: isRefreshing ? 0.6 : 1, transition: "opacity 0.2s" }}>
         {jobs.map((job) => {
           const s = STATUS_STYLES[job.status] ?? STATUS_STYLES.pending;
           const title = job.original_name ?? job.youtube_title ?? job.youtube_url ?? "Video";
           const isBusy = busy === job.id;
+          const isSelected = selected.has(job.id);
 
           return (
             <div
               key={job.id}
-              className="flex items-center gap-4 p-4 rounded-xl border transition-opacity"
+              className="flex items-center gap-3 p-4 rounded-xl border transition-all"
               style={{
-                background: "var(--color-surface)",
-                borderColor: "var(--color-border)",
+                background: isSelected ? "#EFF6FF" : "var(--color-surface)",
+                borderColor: isSelected ? "#BFDBFE" : "var(--color-border)",
                 opacity: isBusy ? 0.5 : 1,
               }}
             >
+              {/* Checkbox */}
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => toggleOne(job.id)}
+                className="w-4 h-4 rounded accent-blue-600 cursor-pointer flex-shrink-0"
+              />
+
               {/* Thumbnail */}
-              <div
-                className="w-16 h-10 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center"
-                style={{ background: "#F1F5F9" }}
-              >
+              <div className="w-16 h-10 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: "#F1F5F9" }}>
                 {job.thumbnail_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={job.thumbnail_url} alt="" className="w-full h-full object-cover" />
@@ -163,54 +262,29 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate" style={{ color: "var(--color-accent)" }} title={title}>
-                  {title}
-                </p>
+                <p className="font-medium text-sm truncate" style={{ color: "var(--color-accent)" }} title={title}>{title}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
-                  {job.input_type === "youtube" ? "YouTube" : "Upload"} ·{" "}
-                  {new Date(job.created_at).toLocaleDateString()}
+                  {job.input_type === "youtube" ? "YouTube" : "Upload"} · {new Date(job.created_at).toLocaleDateString()}
                   {job.is_archived ? " · Archived" : ""}
                 </p>
               </div>
 
               {/* Status */}
-              <span
-                className="text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0"
-                style={{ background: s.bg, color: s.text }}
-              >
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: s.bg, color: s.text }}>
                 {s.label}
               </span>
 
               {/* Actions */}
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {job.status === "done" && (
-                  <Link
-                    href={`/analysis/${job.id}`}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                    style={{ background: "#EFF6FF", color: "var(--color-primary)" }}
-                  >
+                  <Link href={`/analysis/${job.id}`} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: "#EFF6FF", color: "var(--color-primary)" }}>
                     View →
                   </Link>
                 )}
-                <button
-                  onClick={() => archiveToggle(job)}
-                  disabled={isBusy}
-                  title={job.is_archived ? "Unarchive" : "Archive"}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors"
-                  style={{ color: "var(--color-muted)" }}
-                >
-                  {isBusy
-                    ? <Loader2 size={14} className="animate-spin" />
-                    : job.is_archived ? <ArchiveRestore size={14} /> : <Archive size={14} />
-                  }
+                <button onClick={() => archiveToggle(job)} disabled={isBusy} title={job.is_archived ? "Unarchive" : "Archive"} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors" style={{ color: "var(--color-muted)" }}>
+                  {isBusy ? <Loader2 size={14} className="animate-spin" /> : job.is_archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
                 </button>
-                <button
-                  onClick={() => setConfirmDelete(job.id)}
-                  disabled={isBusy}
-                  title="Delete"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors"
-                  style={{ color: isBusy ? "var(--color-muted)" : "var(--color-error)" }}
-                >
+                <button onClick={() => setConfirmDelete(job.id)} disabled={isBusy} title="Delete" className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors" style={{ color: isBusy ? "var(--color-muted)" : "var(--color-error)" }}>
                   {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 </button>
               </div>
@@ -223,11 +297,7 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-1.5 mt-6">
           {page > 1 ? (
-            <Link
-              href={buildPageUrl(page - 1)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center border"
-              style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-muted)" }}
-            >
+            <Link href={buildPageUrl(page - 1)} className="w-8 h-8 rounded-lg flex items-center justify-center border" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-muted)" }}>
               <ChevronLeft size={15} />
             </Link>
           ) : (
@@ -235,28 +305,13 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
               <ChevronLeft size={15} />
             </span>
           )}
-
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={buildPageUrl(p)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium border transition-all"
-              style={{
-                background: p === page ? "var(--color-primary)" : "var(--color-surface)",
-                color: p === page ? "white" : "var(--color-muted)",
-                borderColor: p === page ? "var(--color-primary)" : "var(--color-border)",
-              }}
-            >
+            <Link key={p} href={buildPageUrl(p)} className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium border transition-all" style={{ background: p === page ? "var(--color-primary)" : "var(--color-surface)", color: p === page ? "white" : "var(--color-muted)", borderColor: p === page ? "var(--color-primary)" : "var(--color-border)" }}>
               {p}
             </Link>
           ))}
-
           {page < totalPages ? (
-            <Link
-              href={buildPageUrl(page + 1)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center border"
-              style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-muted)" }}
-            >
+            <Link href={buildPageUrl(page + 1)} className="w-8 h-8 rounded-lg flex items-center justify-center border" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-muted)" }}>
               <ChevronRight size={15} />
             </Link>
           ) : (

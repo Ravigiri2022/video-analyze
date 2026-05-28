@@ -74,19 +74,16 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             </button>
           </form>
 
-          {/* Footer links row */}
-          <div className="flex items-center gap-1 pt-1">
-            <Link href="/upcoming" className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors hover:bg-slate-50" style={{ color: "var(--color-muted)" }}>
-              <Star size={11} />
-              Roadmap
+          {/* Footer icon links */}
+          <div className="flex items-center gap-0.5 pt-1">
+            <Link href="/upcoming" title="Roadmap" className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-slate-100" style={{ color: "var(--color-muted)" }}>
+              <Star size={14} />
             </Link>
-            <Link href="/support" className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors hover:bg-slate-50" style={{ color: "var(--color-muted)" }}>
-              <Heart size={11} />
-              Support
+            <Link href="/support" title="Support" className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-slate-100" style={{ color: "var(--color-muted)" }}>
+              <Heart size={14} />
             </Link>
-            <Link href="/about" className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors hover:bg-slate-50" style={{ color: "var(--color-muted)" }}>
-              <Info size={11} />
-              About
+            <Link href="/about" title="About" className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-slate-100" style={{ color: "var(--color-muted)" }}>
+              <Info size={14} />
             </Link>
           </div>
         </div>
