@@ -14,6 +14,6 @@ def get_model() -> WhisperModel:
 
 def transcribe(audio_path: str) -> pd.DataFrame:
     model = get_model()
-    segments, _ = model.transcribe(audio_path, beam_size=5)
+    segments, _ = model.transcribe(audio_path, beam_size=1, vad_filter=True)
     rows = [{"start": s.start, "end": s.end, "text": s.text.strip()} for s in segments]
     return pd.DataFrame(rows) if rows else pd.DataFrame(columns=["start", "end", "text"])

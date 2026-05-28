@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     max_video_duration_s: int = 300
     max_file_size_mb: int = 100
     rate_limit_jobs_per_hour: int = 5
-    whisper_model: str = "base"
+    whisper_model: str = "tiny"
     log_level: str = "INFO"
     tmp_dir: str = "/tmp/vilyze"
     ytdlp_cookies_from_browser: str = "chrome"

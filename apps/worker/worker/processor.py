@@ -1,3 +1,4 @@
+import gc
 import os
 import uuid
 import json
@@ -96,6 +97,13 @@ def process_job(job: dict) -> None:
             rms, rms_times, silence_threshold, silence_analysis = audio_analysis.analyze_audio(audio_path)
         except Exception as e:
             raise RuntimeError(f"Audio analysis failed: {e}") from e
+
+        # Free raw video from disk now — no longer needed
+        try:
+            os.remove(raw_path)
+        except OSError:
+            pass
+        gc.collect()
 
         # ── 7. Align onto 1-second grid ───────────────────────────────
         video_duration = int(motion_times[-1]) if motion_times else int(duration)
