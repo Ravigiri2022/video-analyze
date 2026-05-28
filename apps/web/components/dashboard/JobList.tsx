@@ -275,7 +275,7 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: s.bg, color: s.text }}>
                     {s.label}
                   </span>
-                  <div className="flex items-center gap-1.5 pl-11">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={(e) => { e.stopPropagation(); archiveToggle(job); }}
                       disabled={isBusy}
