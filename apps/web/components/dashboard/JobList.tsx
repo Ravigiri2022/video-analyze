@@ -271,32 +271,32 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
                   </p>
                 </div>
 
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: s.bg, color: s.text }}>
-                  {s.label}
-                </span>
-              </div>
-
-              {/* Bottom row: actions */}
-              <div className="flex items-center gap-1.5 pl-11">
-                <button
-                  onClick={(e) => { e.stopPropagation(); archiveToggle(job); }}
-                  disabled={isBusy}
-                  title={job.is_archived ? "Unarchive" : "Archive"}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors"
-                  style={{ color: "var(--color-muted)" }}
-                >
-                  {isBusy ? <Loader2 size={14} className="animate-spin" /> : job.is_archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(job.id); }}
-                  disabled={isBusy}
-                  title="Delete"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors"
-                  style={{ color: isBusy ? "var(--color-muted)" : "var(--color-error)" }}
-                >
-                  {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                </button>
-              </div>
+                <div className="flex flex-col justify-end items-center">
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: s.bg, color: s.text }}>
+                    {s.label}
+                  </span>
+                  <div className="flex items-center gap-1.5 pl-11">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); archiveToggle(job); }}
+                      disabled={isBusy}
+                      title={job.is_archived ? "Unarchive" : "Archive"}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors"
+                      style={{ color: "var(--color-muted)" }}
+                    >
+                      {isBusy ? <Loader2 size={14} className="animate-spin" /> : job.is_archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(job.id); }}
+                      disabled={isBusy}
+                      title="Delete"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors"
+                      style={{ color: isBusy ? "var(--color-muted)" : "var(--color-error)" }}
+                    >
+                      {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    </button>
+                  </div>
+                </div>
+              </div>              
             </div>
           );
         })}
