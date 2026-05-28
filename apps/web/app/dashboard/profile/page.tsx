@@ -1,12 +1,29 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useProfile } from "@/hooks/useProfile";
-import { User, Camera, Check, Loader2 } from "lucide-react";
+import { User, Camera, Check, Loader2, Trash2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
   const { profile, saving, saved, avatarUploading, error, saveName, uploadAvatar } = useProfile();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await fetch("/api/account", { method: "DELETE" });
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch {
+      setDeleting(false);
+    }
+  }
 
   if (!profile) {
     return (
@@ -17,7 +34,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-8 max-w-xl">
+    <div className="p-4 sm:p-8 max-w-xl">
       <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--color-accent)" }}>Profile</h1>
       <p className="text-sm mb-8" style={{ color: "var(--color-muted)" }}>Manage your account settings</p>
 
@@ -141,7 +158,60 @@ export default function ProfilePage() {
             </span>
           </div>
         </div>
+
+        {/* Danger zone */}
+        <div className="rounded-xl border p-5" style={{ borderColor: "#FECACA", background: "#FFF5F5" }}>
+          <p className="text-xs font-semibold mb-0.5" style={{ color: "#DC2626" }}>Danger zone</p>
+          <p className="text-xs mb-4" style={{ color: "#7F1D1D" }}>
+            Permanently deletes your account and all video analyses. This cannot be undone.
+          </p>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border"
+            style={{ borderColor: "#FCA5A5", color: "#DC2626", background: "white" }}
+          >
+            <Trash2 size={12} />
+            Delete my account
+          </button>
+        </div>
       </div>
+
+      {/* Delete confirm modal */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(15,23,42,0.5)" }}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border shadow-xl p-6 flex flex-col gap-4"
+            style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+          >
+            <h3 className="font-semibold" style={{ color: "var(--color-accent)" }}>Delete account?</h3>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--color-muted)" }}>
+              All your videos, analyses, and account data will be permanently deleted. There is no way to recover this.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                style={{ background: "#DC2626" }}
+              >
+                {deleting && <Loader2 size={14} className="animate-spin" />}
+                {deleting ? "Deleting…" : "Yes, delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="min-h-screen" style={{ background: "var(--color-bg)" }}>
       <nav
-        className="flex items-center justify-between px-8 py-4 border-b"
+        className="flex items-center justify-between px-4 sm:px-8 py-4 border-b"
         style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
       >
         <p className="text-sm font-bold" style={{ color: "var(--color-accent)" }}>
@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           ← Dashboard
         </Link>
       </nav>
-      <main className="max-w-5xl mx-auto px-6 py-10">{children}</main>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">{children}</main>
     </div>
   );
 }

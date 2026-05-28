@@ -1,41 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Mail, Check, Loader2 } from "lucide-react";
-import { analysisService } from "@/lib/services/analysis";
+import { Download, Share2, Check, Loader2, Copy, Trash2 } from "lucide-react";
 
 interface Props {
   jobId: string;
 }
 
-type EmailStatus = "idle" | "sending" | "sent" | "error";
+type ShareStatus = "idle" | "loading" | "copied" | "error";
 
 export function AnalysisActions({ jobId }: Props) {
-  const [showModal, setShowModal] = useState(false);
-  const [emailTo, setEmailTo] = useState("");
-  const [emailCc, setEmailCc] = useState("");
-  const [status, setStatus] = useState<EmailStatus>("idle");
+  const [shareStatus, setShareStatus] = useState<ShareStatus>("idle");
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   function handleDownload() {
     window.open(`/analysis/${jobId}/print`, "_blank");
   }
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus("sending");
+  async function handleShare() {
+    setShareStatus("loading");
     try {
-      await analysisService.emailReport(jobId, emailTo, emailCc);
-      setStatus("sent");
-      setTimeout(() => {
-        setShowModal(false);
-        setStatus("idle");
-        setEmailTo("");
-        setEmailCc("");
-      }, 2500);
+      const res = await fetch(`/api/jobs/${jobId}/share`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setShareToken(json.token);
+      setShowShareModal(true);
+      setShareStatus("idle");
     } catch {
-      setStatus("error");
+      setShareStatus("error");
+      setTimeout(() => setShareStatus("idle"), 2000);
     }
   }
+
+  async function copyLink() {
+    if (!shareToken) return;
+    const url = `${window.location.origin}/share/${shareToken}`;
+    await navigator.clipboard.writeText(url);
+    setShareStatus("copied");
+    setTimeout(() => setShareStatus("idle"), 2000);
+  }
+
+  async function revokeLink() {
+    await fetch(`/api/jobs/${jobId}/share`, { method: "DELETE" });
+    setShareToken(null);
+    setShowShareModal(false);
+  }
+
+  const shareUrl = shareToken ? `${typeof window !== "undefined" ? window.location.origin : ""}/share/${shareToken}` : "";
 
   return (
     <>
@@ -49,87 +61,60 @@ export function AnalysisActions({ jobId }: Props) {
           Download PDF
         </button>
         <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border"
+          onClick={handleShare}
+          disabled={shareStatus === "loading"}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50"
           style={{ borderColor: "var(--color-border)", color: "var(--color-accent)", background: "var(--color-surface)" }}
         >
-          <Mail size={13} />
-          Email Report
+          {shareStatus === "loading" ? <Loader2 size={13} className="animate-spin" /> : <Share2 size={13} />}
+          {shareStatus === "error" ? "Failed" : "Share"}
         </button>
       </div>
 
-      {showModal && (
+      {showShareModal && shareToken && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(15,23,42,0.5)" }}
-          onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
+          onClick={(e) => e.target === e.currentTarget && setShowShareModal(false)}
         >
           <div
             className="w-full max-w-sm rounded-2xl border shadow-xl p-6 flex flex-col gap-4"
             style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold" style={{ color: "var(--color-accent)" }}>Email Report</h3>
-              <button onClick={() => setShowModal(false)} style={{ color: "var(--color-muted)" }}>✕</button>
+              <h3 className="font-semibold" style={{ color: "var(--color-accent)" }}>Share Report</h3>
+              <button onClick={() => setShowShareModal(false)} style={{ color: "var(--color-muted)" }}>✕</button>
             </div>
 
-            {status === "sent" ? (
-              <div className="text-center py-6 flex flex-col items-center gap-3">
-                <div
-                  className="w-11 h-11 rounded-full flex items-center justify-center"
-                  style={{ background: "#D1FAE5" }}
-                >
-                  <Check size={20} color="var(--color-success)" strokeWidth={2.5} />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: "var(--color-accent)" }}>Report sent!</p>
-                  <p className="text-xs mt-1" style={{ color: "var(--color-muted)" }}>
-                    Check your inbox
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleSend} className="flex flex-col gap-3">
-                <div>
-                  <label className="text-xs font-semibold block mb-1" style={{ color: "var(--color-accent)" }}>To</label>
-                  <input
-                    type="email"
-                    value={emailTo}
-                    onChange={(e) => setEmailTo(e.target.value)}
-                    placeholder="recipient@example.com"
-                    required
-                    className="w-full px-3 py-2 rounded-xl border text-sm outline-none"
-                    style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)" }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold block mb-1" style={{ color: "var(--color-accent)" }}>
-                    CC{" "}
-                    <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>(optional)</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={emailCc}
-                    onChange={(e) => setEmailCc(e.target.value)}
-                    placeholder="cc@example.com"
-                    className="w-full px-3 py-2 rounded-xl border text-sm outline-none"
-                    style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)" }}
-                  />
-                </div>
-                {status === "error" && (
-                  <p className="text-xs" style={{ color: "var(--color-error)" }}>Failed to send. Try again.</p>
-                )}
-                <button
-                  type="submit"
-                  disabled={status === "sending"}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-                  style={{ background: "var(--color-primary)" }}
-                >
-                  {status === "sending" && <Loader2 size={14} className="animate-spin" />}
-                  {status === "sending" ? "Sending…" : "Send Report"}
-                </button>
-              </form>
-            )}
+            <p className="text-xs leading-relaxed" style={{ color: "var(--color-muted)" }}>
+              Anyone with this link can view the analysis results — no login required.
+            </p>
+
+            <div
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-mono break-all"
+              style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text)" }}
+            >
+              <span className="flex-1 truncate">{shareUrl}</span>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={copyLink}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style={{ background: shareStatus === "copied" ? "#10B981" : "var(--color-primary)" }}
+              >
+                {shareStatus === "copied" ? <Check size={14} /> : <Copy size={14} />}
+                {shareStatus === "copied" ? "Copied!" : "Copy link"}
+              </button>
+              <button
+                onClick={revokeLink}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border"
+                style={{ borderColor: "#FCA5A5", color: "#DC2626", background: "#FEF2F2" }}
+                title="Revoke link"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           </div>
         </div>
       )}

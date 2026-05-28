@@ -278,7 +278,7 @@ export function InteractiveAttentionChart({ data, drops, recs = [] }: Props) {
             className="rounded-xl border p-4"
             style={{ background: scoreBg(selBar.score), borderColor: scoreBorder(selBar.score) }}
           >
-            <div className="flex items-start gap-5 flex-wrap">
+            <div className="flex items-start gap-4 flex-wrap">
               <div className="flex-shrink-0">
                 <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-muted)" }}>
                   {formatDuration(selBar.sec)}

@@ -160,13 +160,13 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
       {/* Bulk action bar */}
       {someSelected && (
         <div
-          className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border mb-3"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 rounded-xl border mb-3"
           style={{ background: "#EFF6FF", borderColor: "#BFDBFE" }}
         >
           <p className="text-sm font-semibold" style={{ color: "#1E40AF" }}>
             {selected.size} selected
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => bulkArchive(true)}
               disabled={bulkBusy}
@@ -235,47 +235,46 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
           return (
             <div
               key={job.id}
-              className="flex items-center gap-3 p-4 rounded-xl border transition-all"
+              className="flex flex-col p-4 rounded-xl border transition-all gap-2"
               style={{
                 background: isSelected ? "#EFF6FF" : "var(--color-surface)",
                 borderColor: isSelected ? "#BFDBFE" : "var(--color-border)",
                 opacity: isBusy ? 0.5 : 1,
               }}
             >
-              {/* Checkbox */}
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => toggleOne(job.id)}
-                className="w-4 h-4 rounded accent-blue-600 cursor-pointer flex-shrink-0"
-              />
+              {/* Top row: checkbox + thumbnail + info + status */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleOne(job.id)}
+                  className="w-4 h-4 rounded accent-blue-600 cursor-pointer flex-shrink-0"
+                />
 
-              {/* Thumbnail */}
-              <div className="w-16 h-10 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: "#F1F5F9" }}>
-                {job.thumbnail_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={job.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <Video size={16} color="var(--color-muted)" strokeWidth={1.5} />
-                )}
+                <div className="w-14 h-9 sm:w-16 sm:h-10 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: "#F1F5F9" }}>
+                  {job.thumbnail_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={job.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Video size={14} color="var(--color-muted)" strokeWidth={1.5} />
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate" style={{ color: "var(--color-accent)" }} title={title}>{title}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
+                    {job.input_type === "youtube" ? "YouTube" : "Upload"} · {new Date(job.created_at).toLocaleDateString()}
+                    {job.is_archived ? " · Archived" : ""}
+                  </p>
+                </div>
+
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: s.bg, color: s.text }}>
+                  {s.label}
+                </span>
               </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate" style={{ color: "var(--color-accent)" }} title={title}>{title}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
-                  {job.input_type === "youtube" ? "YouTube" : "Upload"} · {new Date(job.created_at).toLocaleDateString()}
-                  {job.is_archived ? " · Archived" : ""}
-                </p>
-              </div>
-
-              {/* Status */}
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: s.bg, color: s.text }}>
-                {s.label}
-              </span>
-
-              {/* Actions */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* Bottom row: actions */}
+              <div className="flex items-center gap-1.5 pl-11">
                 {job.status === "done" && (
                   <Link href={`/analysis/${job.id}`} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: "#EFF6FF", color: "var(--color-primary)" }}>
                     View →

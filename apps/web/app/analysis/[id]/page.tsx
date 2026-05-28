@@ -41,15 +41,15 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
   const a = analysis as Analysis;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto flex flex-col gap-6">
+    <div className="p-4 sm:p-8 max-w-5xl mx-auto flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         <div className="min-w-0 flex-1">
           <Link href="/dashboard" className="text-xs font-medium mb-2 inline-flex items-center gap-1" style={{ color: "var(--color-muted)" }}>
             ← Dashboard
           </Link>
           <h1
-            className="text-2xl font-bold truncate"
+            className="text-xl sm:text-2xl font-bold break-words"
             title={job.original_name ?? job.youtube_title ?? "Analysis Results"}
             style={{ color: "var(--color-accent)" }}
           >
@@ -61,7 +61,7 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
           <AnalysisActions jobId={id} />
         </div>
 
-        <div className="flex flex-col items-end gap-3 flex-shrink-0">
+        <div className="flex sm:flex-col items-center sm:items-end gap-3 flex-shrink-0">
           <div className="flex flex-col items-center gap-1 rounded-2xl border p-4" style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}>
             <span className={`text-4xl font-bold ${gradeColor(a.grade)}`}>{a.grade}</span>
             <span className="text-2xl font-semibold" style={{ color: "var(--color-accent)" }}>{a.overall_score.toFixed(0)}</span>
@@ -123,7 +123,7 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
 
       {/* Feedback callout */}
       <div
-        className="rounded-2xl border p-6 flex items-center justify-between gap-6"
+        className="rounded-2xl border p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)", borderColor: "#BFDBFE" }}
       >
         <div>
@@ -136,7 +136,7 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
         </div>
         <Link
           href="/support"
-          className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-white whitespace-nowrap"
+          className="self-start sm:self-auto flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-white whitespace-nowrap"
           style={{ background: "#2563EB" }}
         >
           Rate &amp; Feedback →

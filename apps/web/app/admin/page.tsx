@@ -14,7 +14,7 @@ export default async function AdminPage() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl font-bold" style={{ color: "var(--color-accent)" }}>Feedback</h1>
         <p className="text-sm mt-1" style={{ color: "var(--color-muted)" }}>
           {rows?.length ?? 0} message{(rows?.length ?? 0) !== 1 ? "s" : ""}

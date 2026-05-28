@@ -21,15 +21,15 @@ export default async function LandingPage({
   return (
     <main className="flex flex-col min-h-screen" style={{ background: "var(--color-bg)" }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+      <nav className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
         <span className="text-xl font-bold tracking-tight" style={{ color: "var(--color-accent)" }}>
           Vilyze
         </span>
-        <div className="flex items-center gap-4">
-          <Link href="/upcoming" className="text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/upcoming" className="hidden sm:block text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
             Roadmap
           </Link>
-          <Link href="/login" className="text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
+          <Link href="/login" className="hidden sm:block text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
             Sign in
           </Link>
           <Link href="/login" className="text-sm font-semibold px-4 py-2 rounded-lg text-white" style={{ background: "var(--color-primary)" }}>
@@ -39,13 +39,13 @@ export default async function LandingPage({
       </nav>
 
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center flex-1 text-center px-6 py-24 gap-8">
+      <section className="flex flex-col items-center justify-center flex-1 text-center px-4 sm:px-6 py-16 sm:py-24 gap-6 sm:gap-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "var(--color-primary)" }}>
           <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--color-primary)" }} />
           AI-powered · No GPU cost · Free to start
         </div>
 
-        <h1 className="text-5xl font-bold tracking-tight max-w-3xl leading-tight" style={{ color: "var(--color-accent)" }}>
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight max-w-3xl leading-tight" style={{ color: "var(--color-accent)" }}>
           Understand <span style={{ color: "var(--color-primary)" }}>why viewers drop off</span> your videos
         </h1>
 
@@ -70,7 +70,7 @@ export default async function LandingPage({
             <div className="w-3 h-3 rounded-full" style={{ background: "#68D391" }} />
             <span className="ml-2 text-xs" style={{ color: "var(--color-muted)" }}>Analysis — My Video.mp4</span>
           </div>
-          <div className="p-6 grid grid-cols-3 gap-4">
+          <div className="p-4 sm:p-6 grid grid-cols-3 gap-2 sm:gap-4">
             {[
               { label: "Overall Score", value: "78", suffix: "/100", color: "var(--color-primary)" },
               { label: "Grade", value: "B", suffix: "", color: "#7C3AED" },
@@ -107,7 +107,7 @@ export default async function LandingPage({
       </section>
 
       {/* How it works */}
-      <section id="how" className="py-20 px-6 border-t" style={{ borderColor: "var(--color-border)" }}>
+      <section id="how" className="py-14 sm:py-20 px-5 sm:px-6 border-t" style={{ borderColor: "var(--color-border)" }}>
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12" style={{ color: "var(--color-accent)" }}>How it works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

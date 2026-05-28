@@ -56,18 +56,18 @@ export default function UpcomingPage() {
     <main style={{ background: "var(--color-bg)", minHeight: "100vh" }}>
       {/* Nav */}
       <nav
-        className="flex items-center justify-between px-8 py-5 border-b"
+        className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b"
         style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
       >
         <Link href="/" className="flex items-center gap-2.5">
           <Image src="/logo.png" alt="Vilyze" width={28} height={28} className="rounded-lg" />
           <span className="text-xl font-bold tracking-tight" style={{ color: "var(--color-accent)" }}>Vilyze</span>
         </Link>
-        <div className="flex items-center gap-3">
-          <Link href="/about" className="text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link href="/about" className="hidden sm:block text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
             About
           </Link>
-          <Link href="/support" className="text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
+          <Link href="/support" className="hidden sm:block text-sm font-medium px-4 py-2 rounded-lg" style={{ color: "var(--color-muted)" }}>
             Support
           </Link>
           <Link
@@ -80,7 +80,7 @@ export default function UpcomingPage() {
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Hero */}
         <div className="text-center mb-16">
           <div
