@@ -240,7 +240,9 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
                 background: isSelected ? "#EFF6FF" : "var(--color-surface)",
                 borderColor: isSelected ? "#BFDBFE" : "var(--color-border)",
                 opacity: isBusy ? 0.5 : 1,
+                cursor: job.status === "done" ? "pointer" : "default",
               }}
+              onClick={() => { if (job.status === "done") router.push(`/analysis/${job.id}`); }}
             >
               {/* Top row: checkbox + thumbnail + info + status */}
               <div className="flex items-center gap-3">
@@ -248,6 +250,7 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => toggleOne(job.id)}
+                  onClick={(e) => e.stopPropagation()}
                   className="w-4 h-4 rounded accent-blue-600 cursor-pointer flex-shrink-0"
                 />
 
@@ -275,15 +278,22 @@ export function JobList({ jobs, page, totalPages, filters, emptyMessage }: Props
 
               {/* Bottom row: actions */}
               <div className="flex items-center gap-1.5 pl-11">
-                {job.status === "done" && (
-                  <Link href={`/analysis/${job.id}`} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: "#EFF6FF", color: "var(--color-primary)" }}>
-                    View →
-                  </Link>
-                )}
-                <button onClick={() => archiveToggle(job)} disabled={isBusy} title={job.is_archived ? "Unarchive" : "Archive"} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors" style={{ color: "var(--color-muted)" }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); archiveToggle(job); }}
+                  disabled={isBusy}
+                  title={job.is_archived ? "Unarchive" : "Archive"}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors"
+                  style={{ color: "var(--color-muted)" }}
+                >
                   {isBusy ? <Loader2 size={14} className="animate-spin" /> : job.is_archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
                 </button>
-                <button onClick={() => setConfirmDelete(job.id)} disabled={isBusy} title="Delete" className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors" style={{ color: isBusy ? "var(--color-muted)" : "var(--color-error)" }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(job.id); }}
+                  disabled={isBusy}
+                  title="Delete"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors"
+                  style={{ color: isBusy ? "var(--color-muted)" : "var(--color-error)" }}
+                >
                   {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 </button>
               </div>
