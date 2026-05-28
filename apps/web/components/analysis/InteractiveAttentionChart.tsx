@@ -34,6 +34,130 @@ function downsample(data: AttentionPoint[], n: number): AttentionPoint[] {
   return out;
 }
 
+function smoothPath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return "";
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i - 1];
+    const c = pts[i];
+    const cp1x = (p.x + (c.x - p.x) * 0.4).toFixed(2);
+    const cp2x = (c.x - (c.x - p.x) * 0.4).toFixed(2);
+    d += ` C ${cp1x} ${p.y.toFixed(2)}, ${cp2x} ${c.y.toFixed(2)}, ${c.x.toFixed(2)} ${c.y.toFixed(2)}`;
+  }
+  return d;
+}
+
+function RetentionCurve({ bars }: { bars: AttentionPoint[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+
+  const W = 1000;
+  const H = 90;
+  const PAD = { top: 6, bottom: 6 };
+
+  const pts = bars.map((pt, i) => ({
+    x: (i / Math.max(bars.length - 1, 1)) * W,
+    y: PAD.top + (1 - pt.score / 100) * (H - PAD.top - PAD.bottom),
+  }));
+
+  const linePath = smoothPath(pts);
+  const last = pts[pts.length - 1];
+  const fillPath = linePath + ` L ${last.x} ${H} L 0 ${H} Z`;
+
+  const hovPt = hover != null ? pts[hover] : null;
+  const hovBar = hover != null ? bars[hover] : null;
+
+  return (
+    <div className="relative select-none" style={{ height: 90 }}>
+      {/* Y labels */}
+      <div
+        className="absolute left-0 top-0 h-full flex flex-col justify-between pointer-events-none"
+        style={{ width: 24 }}
+      >
+        {["100", "50", "0"].map((v) => (
+          <span key={v} className="text-[9px] leading-none" style={{ color: "var(--color-muted)" }}>
+            {v}
+          </span>
+        ))}
+      </div>
+
+      {/* SVG */}
+      <div className="absolute inset-0" style={{ left: 26 }}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className="w-full h-full"
+          onMouseMove={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            const rel = (e.clientX - r.left) / r.width;
+            setHover(Math.min(bars.length - 1, Math.max(0, Math.round(rel * (bars.length - 1)))));
+          }}
+          onMouseLeave={() => setHover(null)}
+        >
+          <defs>
+            <linearGradient id="retGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2563EB" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#2563EB" stopOpacity="0.01" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          {[0, 50, 100].map((v) => {
+            const y = PAD.top + (1 - v / 100) * (H - PAD.top - PAD.bottom);
+            return (
+              <line key={v} x1={0} y1={y} x2={W} y2={y}
+                stroke="#E2E8F0" strokeWidth={v === 0 ? 0 : 1} />
+            );
+          })}
+
+          {/* Drop regions */}
+          {bars.map((pt, i) => {
+            if (pt.score >= 50) return null;
+            const x = (i / Math.max(bars.length - 1, 1)) * W;
+            const bw = W / bars.length;
+            return (
+              <rect key={i} x={x - bw / 2} y={0} width={bw} height={H}
+                fill="#EF4444" opacity={0.04} />
+            );
+          })}
+
+          {/* Fill */}
+          <path d={fillPath} fill="url(#retGrad)" />
+
+          {/* Line */}
+          <path d={linePath} fill="none" stroke="#2563EB" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Hover */}
+          {hovPt && (
+            <>
+              <line x1={hovPt.x} y1={0} x2={hovPt.x} y2={H}
+                stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 2" />
+              <circle cx={hovPt.x} cy={hovPt.y} r="4.5"
+                fill="#2563EB" stroke="white" strokeWidth="2" />
+            </>
+          )}
+        </svg>
+
+        {/* Hover tooltip */}
+        {hovPt && hovBar && (
+          <div
+            className="absolute pointer-events-none px-2 py-1 rounded-lg text-[11px] font-semibold text-white shadow-md"
+            style={{
+              top: -28,
+              left: `${(hovPt.x / W) * 100}%`,
+              transform: "translateX(-50%)",
+              background: scoreColor(hovBar.score),
+              whiteSpace: "nowrap",
+            }}
+          >
+            {formatDuration(hovBar.sec)} · {hovBar.score.toFixed(0)}%
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   data: AttentionPoint[];
   drops: AttentionDrop[];
@@ -69,6 +193,21 @@ export function InteractiveAttentionChart({ data, drops, recs = [] }: Props) {
           Tap any bar for details
         </span>
       </div>
+
+      {/* Retention line curve */}
+      <div className="mb-3">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="w-4 h-0.5 rounded" style={{ background: "#2563EB" }} />
+          <span className="text-[10px] font-medium" style={{ color: "var(--color-muted)" }}>
+            Viewer retention (simulated)
+          </span>
+          <InfoTooltip text="Smooth retention curve simulated from attention data — similar to YouTube Studio's audience retention graph. Hover to inspect any moment." />
+        </div>
+        <RetentionCurve bars={bars} />
+      </div>
+
+      {/* Divider */}
+      <div className="mb-3 h-px" style={{ background: "var(--color-border)" }} />
 
       {/* Bars */}
       <div className="flex items-end gap-[2px] h-28">
@@ -124,7 +263,7 @@ export function InteractiveAttentionChart({ data, drops, recs = [] }: Props) {
         ))}
       </div>
 
-      {/* Detail panel — slides down below the chart */}
+      {/* Detail panel */}
       <div
         style={{
           maxHeight: selBar ? 300 : 0,
@@ -140,7 +279,6 @@ export function InteractiveAttentionChart({ data, drops, recs = [] }: Props) {
             style={{ background: scoreBg(selBar.score), borderColor: scoreBorder(selBar.score) }}
           >
             <div className="flex items-start gap-5 flex-wrap">
-              {/* Score */}
               <div className="flex-shrink-0">
                 <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-muted)" }}>
                   {formatDuration(selBar.sec)}
@@ -153,7 +291,6 @@ export function InteractiveAttentionChart({ data, drops, recs = [] }: Props) {
                 </p>
               </div>
 
-              {/* Drop info */}
               {selDrop && (
                 <div
                   className="flex-shrink-0 rounded-lg p-3 self-start"
@@ -171,7 +308,6 @@ export function InteractiveAttentionChart({ data, drops, recs = [] }: Props) {
                 </div>
               )}
 
-              {/* Recommendations */}
               {selRecs.length > 0 ? (
                 <div className="flex-1 min-w-[160px]">
                   <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--color-accent)" }}>
@@ -179,11 +315,7 @@ export function InteractiveAttentionChart({ data, drops, recs = [] }: Props) {
                   </p>
                   <div className="flex flex-col gap-1.5">
                     {selRecs.slice(0, 2).map((r, i) => (
-                      <div
-                        key={i}
-                        className="text-xs p-2 rounded-lg leading-relaxed"
-                        style={{ background: "rgba(255,255,255,0.65)", color: "var(--color-text)" }}
-                      >
+                      <div key={i} className="text-xs p-2 rounded-lg leading-relaxed" style={{ background: "rgba(255,255,255,0.65)", color: "var(--color-text)" }}>
                         {r.text}
                       </div>
                     ))}
@@ -191,16 +323,12 @@ export function InteractiveAttentionChart({ data, drops, recs = [] }: Props) {
                 </div>
               ) : selDrop ? (
                 <div className="flex-1 min-w-[160px]">
-                  <div
-                    className="text-xs p-2.5 rounded-lg leading-relaxed"
-                    style={{ background: "rgba(255,255,255,0.65)", color: "var(--color-text)" }}
-                  >
+                  <div className="text-xs p-2.5 rounded-lg leading-relaxed" style={{ background: "rgba(255,255,255,0.65)", color: "var(--color-text)" }}>
                     Add dynamic visuals or pick up the pace here to re-engage viewers.
                   </div>
                 </div>
               ) : null}
 
-              {/* Close */}
               <button
                 onClick={() => setSel(null)}
                 className="ml-auto flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-xs self-start"
