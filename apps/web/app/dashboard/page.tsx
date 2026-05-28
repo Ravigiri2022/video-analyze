@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { JobList } from "@/components/dashboard/JobList";
 import { CreditButton } from "@/components/dashboard/CreditButton";
+import { JobStatusWatcher } from "@/components/dashboard/JobStatusWatcher";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -59,6 +60,13 @@ export default async function DashboardPage({
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
+  // Active jobs for real-time watcher (independent of current filter/page)
+  const { data: activeJobs } = await supabase
+    .from("jobs")
+    .select("id, original_name, youtube_title")
+    .eq("user_id", user.id)
+    .in("status", ["pending", "processing", "uploading"]);
+
   const [{ count: usedThisMonth }, { data: profile }] = await Promise.all([
     supabase.from("jobs").select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
@@ -71,6 +79,7 @@ export default async function DashboardPage({
 
   return (
     <div className="p-8">
+      <JobStatusWatcher jobs={activeJobs ?? []} userId={user.id} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "var(--color-accent)" }}>Your Videos</h1>
